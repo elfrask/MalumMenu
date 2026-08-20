@@ -44,6 +44,10 @@ public class RolesTab : ITab
 
         DrawDetective();
 
+        GUILayout.Space(15);
+
+        DrawJudge();
+
         GUILayout.EndVertical();
 
         GUILayout.EndHorizontal();
@@ -117,5 +121,12 @@ public class RolesTab : ITab
         GUILayout.Label("Detective", GUIStylePreset.TabSubtitle);
 
         CheatToggles.interrogateReach = GUILayout.Toggle(CheatToggles.interrogateReach, " Interrogate Reach");
+    }
+
+    private void DrawJudge()
+    {
+        GUILayout.Label("Judge", GUIStylePreset.TabSubtitle);
+
+        CheatToggles.forceJudgeAbilities = GUILayout.Toggle(CheatToggles.forceJudgeAbilities, " Force Abilities");
     }
 }

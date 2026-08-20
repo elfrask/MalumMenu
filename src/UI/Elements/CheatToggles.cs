@@ -38,6 +38,9 @@ public struct CheatToggles
     public static bool noVanishAnim;
     public static bool noShapeshiftAnim;
 
+    // Judge
+    public static bool forceJudgeAbilities;
+
     // ESP
     public static bool noShadows;
     public static bool seeGhosts;
