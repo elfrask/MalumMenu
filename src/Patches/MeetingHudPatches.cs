@@ -1,4 +1,5 @@
 using HarmonyLib;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Object = UnityEngine.Object;
@@ -13,54 +14,61 @@ public static class MeetingHud_Update
     // Prefix patch of MeetingHud.Update to constantly bloop new vote icons for each new vote being cast during the meeting
     public static void Prefix(MeetingHud __instance)
     {
-        if (__instance.state < MeetingHud.VoteStates.Results)
+        try
         {
-            foreach (var playerVoteArea in __instance.playerStates)
+            if (__instance.CurrentState < MeetingHud.MeetingStates.Results)
             {
-                if (!playerVoteArea) continue;
-
-                var playerData = GameData.Instance.GetPlayerById(playerVoteArea.TargetPlayerId);
-
-                if (playerData != null && !playerData.Disconnected && playerVoteArea.VotedFor != PlayerVoteArea.HasNotVoted && playerVoteArea.VotedFor != PlayerVoteArea.MissedVote && playerVoteArea.VotedFor != PlayerVoteArea.DeadVote && !votedPlayers.Contains(playerVoteArea.TargetPlayerId))
+                foreach (var playerVoteArea in __instance.playerStates)
                 {
-                    votedPlayers.Add(playerVoteArea.TargetPlayerId);
+                    if (!playerVoteArea) continue;
 
-                    if (playerVoteArea.VotedFor != PlayerVoteArea.SkippedVote)
+                    var playerData = GameData.Instance.GetPlayerById(playerVoteArea.PlayerId);
+
+                    if (playerData != null && !playerData.Disconnected && playerVoteArea.VotedForId != PlayerVoteArea.HasNotVoted && playerVoteArea.VotedForId != PlayerVoteArea.MissedVote && playerVoteArea.VotedForId != PlayerVoteArea.DeadVote && !votedPlayers.Contains(playerVoteArea.PlayerId))
                     {
-                        foreach (var votedForArea in __instance.playerStates)
+                        votedPlayers.Add(playerVoteArea.PlayerId);
+
+                        if (playerVoteArea.VotedForId != PlayerVoteArea.SkippedVote)
                         {
-                            if (votedForArea.TargetPlayerId == playerVoteArea.VotedFor)
+                            foreach (var votedForArea in __instance.playerStates)
                             {
-                                __instance.BloopAVoteIcon(playerData, 0, votedForArea.transform);
-                                break;
+                                if (votedForArea.PlayerId == playerVoteArea.VotedForId)
+                                {
+                                    __instance.BloopAVoteIcon(playerData, 0, votedForArea.transform);
+                                    break;
+                                }
                             }
                         }
-                    }
-                    else if (__instance.SkippedVoting)
-                    {
-                        __instance.BloopAVoteIcon(playerData, 0, __instance.SkippedVoting.transform);
+                        else if (__instance.SkippedVoting)
+                        {
+                            __instance.BloopAVoteIcon(playerData, 0, __instance.SkippedVoting.transform);
+                        }
                     }
                 }
-            }
 
-            foreach (var votedForArea in __instance.playerStates)
-            {
-                if (!votedForArea) continue;
-
-                var voteSpreader = votedForArea.transform.GetComponent<VoteSpreader>();
-                if (!voteSpreader) continue;
-
-                foreach (var spriteRenderer in voteSpreader.Votes)
+                foreach (var votedForArea in __instance.playerStates)
                 {
-                    spriteRenderer.gameObject.SetActive(CheatToggles.revealVotes);
+                    if (!votedForArea) continue;
+
+                    var voteSpreader = votedForArea.transform.GetComponent<VoteSpreader>();
+                    if (!voteSpreader) continue;
+
+                    foreach (var spriteRenderer in voteSpreader.Votes)
+                    {
+                        spriteRenderer.gameObject.SetActive(CheatToggles.revealVotes);
+                    }
+                }
+
+                // This is required to see who skipped the voting
+                if (__instance.SkippedVoting)
+                {
+                    __instance.SkippedVoting.SetActive(CheatToggles.revealVotes);
                 }
             }
-
-            // This is required to see who skipped the voting
-            if (__instance.SkippedVoting)
-            {
-                __instance.SkippedVoting.SetActive(CheatToggles.revealVotes);
-            }
+        }
+        catch (Exception e)
+        {
+            MalumMenu.Log.LogError($"Error in MeetingHud_Update.Prefix: {e}");
         }
     }
 
@@ -139,12 +147,12 @@ public static class MeetingHud_CheckForEndVoting
             var playerState = __instance.playerStates[index];
             states[index] = new MeetingHud.VoterState
             {
-                VoterId = playerState.TargetPlayerId,
-                VotedForId = playerState.VotedFor
+                VoterId = playerState.PlayerId,
+                VotedForId = playerState.VotedForId
             };
         }
 
-        __instance.RpcVotingComplete(states, exiled, tie);
+        __instance.RpcVotingComplete(states, exiled, tie, false, 0);
 
         return false;
     }
