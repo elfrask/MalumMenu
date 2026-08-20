@@ -1,5 +1,6 @@
 using HarmonyLib;
 using System;
+using UnityEngine;
 
 namespace MalumMenu;
 
@@ -27,7 +28,10 @@ public static class HudManager_Start
 [HarmonyPatch(typeof(HudManager), nameof(HudManager.Update))]
 public static class HudManager_Update
 {
-	public static void Postfix(HudManager __instance)
+    private static Vector3 originalMatchInfoPosition;
+    private static bool isMatchInfoPositionStored;
+
+    public static void Postfix(HudManager __instance)
     {
 		__instance.ShadowQuad.gameObject.SetActive(!MalumESP.IsFullbrightActive()); // Fullbright
 
@@ -39,6 +43,37 @@ public static class HudManager_Update
 		{
 			Utils.CloseChat();
 			__instance.Chat.gameObject.SetActive(false);
+		}
+
+		if (CheatToggles.enableChat)
+		{
+			// Keep the MatchInfo button clear of the chat button so they don't overlap
+			var matchInfoButton = __instance.MatchInfoButton;
+			var chatButton = __instance.Chat.chatButton;
+
+			if (matchInfoButton && chatButton)
+			{
+				var matchInfoTransform = matchInfoButton.transform;
+
+				if (!isMatchInfoPositionStored)
+				{
+					originalMatchInfoPosition = matchInfoTransform.position;
+					isMatchInfoPositionStored = true;
+				}
+
+				var chatPosition = chatButton.transform.position;
+				matchInfoTransform.position = new Vector3(chatPosition.x - 5f, chatPosition.y, chatPosition.z);
+			}
+		}
+		else if (isMatchInfoPositionStored)
+		{
+			var matchInfoButton = __instance.MatchInfoButton;
+			if (matchInfoButton)
+			{
+				matchInfoButton.transform.position = originalMatchInfoPosition;
+			}
+
+			isMatchInfoPositionStored = false;
 		}
 
 		MalumCheats.UseVentCheat(__instance);
